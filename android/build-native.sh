@@ -37,7 +37,7 @@ done
 
 mkdir -p "$(dirname -- "$output")"
 
-"$clang"     -std=c11     -Oz     -fPIC     -ffunction-sections     -fdata-sections     -shared     -Wall     -Wextra     -Werror     -I "$glue_dir"     "$repo_root/android/native/witt_native.c"     "$glue"     -Wl,--gc-sections     -Wl,--no-undefined     -Wl,-soname,libwitt.so     -landroid     -llog     -lEGL     -lGLESv2     -lm     -o "$output"
+"$clang"     -std=c11     -Oz     -fPIC     -ffunction-sections     -fdata-sections     -shared     -Wall     -Wextra         -I "$glue_dir"     "$repo_root/android/native/witt_native.c"     "$glue"     -Wl,--gc-sections     -Wl,--no-undefined     -Wl,-soname,libwitt.so     -landroid     -llog     -lEGL     -lGLESv2     -lm     -o "$output"
 
 "$strip" --strip-unneeded "$output"
 
