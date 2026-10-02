@@ -4,6 +4,8 @@ Small interactive pictures for p-adic/Witt-vector ideas.
 
 ## Witt-vector ring sketch
 
+[Live preview](https://htmlpreview.github.io/?https://github.com/isomorphisms/p-adic/blob/main/index.html)
+
 Open `index.html` in a browser.
 
 The current sketch uses five concentric coordinate rings. For a chosen prime
