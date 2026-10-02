@@ -1,0 +1,351 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Witt vectors — p-adic rings</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #090b10;
+    --panel: #111620;
+    --ink: #e7edf7;
+    --muted: #8591a3;
+    --line: #263244;
+    --glow: #f4d35e;
+    --ghost: #7dd3fc;
+  }
+  * { box-sizing: border-box }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 50% 42%, #162033 0, #0b0f17 35%, var(--bg) 72%);
+    color: var(--ink);
+    font: 15px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    display: grid;
+    place-items: center;
+  }
+  main {
+    width: min(1100px, 96vw);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 18px;
+    padding: 18px;
+  }
+  .stage, .panel {
+    background: color-mix(in srgb, var(--panel) 90%, transparent);
+    border: 1px solid #243044;
+    border-radius: 18px;
+    box-shadow: 0 18px 50px #0008;
+  }
+  .stage { position: relative; min-height: 720px; overflow: hidden; }
+  .panel { padding: 18px; align-self: stretch; }
+  h1 { font-size: 18px; margin: 0 0 4px }
+  .sub { color: var(--muted); margin-bottom: 18px }
+  svg { width: 100%; height: 100%; min-height: 720px; display: block; }
+  .sector {
+    fill: #101827;
+    stroke: var(--line);
+    stroke-width: 1.2;
+    cursor: pointer;
+    transition: fill .14s ease, opacity .14s ease;
+  }
+  .sector:hover { fill: #1c2a3f; }
+  .sector.selected { fill: #40391b; }
+  .ring-label { fill: #93a4bc; font-size: 13px; pointer-events: none; }
+  .digit-label { fill: #64748b; font-size: 12px; pointer-events: none; }
+  .path {
+    fill: none;
+    stroke: var(--glow);
+    stroke-width: 3;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 7px #f4d35e99);
+  }
+  .node {
+    fill: var(--glow);
+    stroke: #fff7;
+    stroke-width: 1.2;
+    filter: drop-shadow(0 0 8px #f4d35eaa);
+  }
+  .ghost-ring {
+    fill: none;
+    stroke: var(--ghost);
+    stroke-width: 2;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .ghost-ring.fire { animation: ripple .9s ease-out; }
+  @keyframes ripple {
+    0% { opacity: .8; stroke-width: 5 }
+    100% { opacity: 0; stroke-width: 1 }
+  }
+  .coords {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 12px;
+    margin: 12px 0 18px;
+  }
+  .coords b { color: var(--glow); font-weight: 600; }
+  .ghosts {
+    display: grid;
+    gap: 7px;
+    margin-top: 8px;
+  }
+  .ghost-row {
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    gap: 8px;
+    padding: 7px 8px;
+    background: #0b111b;
+    border: 1px solid #1e2a3b;
+    border-radius: 8px;
+  }
+  .ghost-row span:first-child { color: var(--ghost); }
+  button, select {
+    background: #111827;
+    color: var(--ink);
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font: inherit;
+  }
+  button { cursor: pointer; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 16px; }
+  .note { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  @media (max-width: 820px) {
+    main { grid-template-columns: 1fr; }
+    .stage { min-height: 590px; }
+    svg { min-height: 590px; }
+  }
+</style>
+
+<main>
+  <section class="stage">
+    <svg id="witt" viewBox="0 0 760 720" aria-label="Interactive p-typical Witt vector">
+      <g id="rings"></g>
+      <g id="ghostRipples"></g>
+      <polyline id="path" class="path"></polyline>
+      <g id="nodes"></g>
+    </svg>
+  </section>
+
+  <aside class="panel">
+    <h1>Witt vector</h1>
+    <div class="sub">Click a sector in any ring.</div>
+
+    <label>prime p
+      <select id="prime">
+        <option>2</option>
+        <option selected>3</option>
+        <option>5</option>
+      </select>
+    </label>
+
+    <div class="coords" id="coords"></div>
+
+    <div class="controls">
+      <button id="randomize">randomize</button>
+      <button id="zero">zero</button>
+      <button id="teich">Teichmüller [a]</button>
+    </div>
+
+    <strong>ghost coordinates</strong>
+    <div class="ghosts" id="ghosts"></div>
+
+    <div class="note">
+      Using integer representatives 0,…,p−1:
+      <br><br>
+      wₙ = x₀^(pⁿ) + p x₁^(pⁿ⁻¹) + ··· + pⁿxₙ.
+      <br><br>
+      Changing xᵢ only affects ghost levels i and above; those levels flash as outward ripples.
+    </div>
+  </aside>
+</main>
+
+<script>
+const svgNS = "http://www.w3.org/2000/svg";
+const ringsG = document.querySelector("#rings");
+const ripplesG = document.querySelector("#ghostRipples");
+const pathEl = document.querySelector("#path");
+const nodesG = document.querySelector("#nodes");
+const coordsEl = document.querySelector("#coords");
+const ghostsEl = document.querySelector("#ghosts");
+const primeEl = document.querySelector("#prime");
+
+const cx = 380, cy = 360;
+const depth = 5;
+const inner = 54;
+const width = 54;
+let p = 3;
+let x = [2,0,1,2,1];
+
+function polar(r, a) {
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+}
+
+function arcPath(r0, r1, a0, a1) {
+  const [x1,y1] = polar(r1,a0);
+  const [x2,y2] = polar(r1,a1);
+  const [x3,y3] = polar(r0,a1);
+  const [x4,y4] = polar(r0,a0);
+  const large = (a1-a0) > Math.PI ? 1 : 0;
+  return [
+    `M ${x1} ${y1}`,
+    `A ${r1} ${r1} 0 ${large} 1 ${x2} ${y2}`,
+    `L ${x3} ${y3}`,
+    `A ${r0} ${r0} 0 ${large} 0 ${x4} ${y4}`,
+    "Z"
+  ].join(" ");
+}
+
+function ringRadius(i) {
+  return inner + i*width + width/2;
+}
+
+function sectorAngle(d) {
+  const span = 2*Math.PI/p;
+  return -Math.PI/2 + (d + .5)*span;
+}
+
+function el(name, attrs={}) {
+  const e = document.createElementNS(svgNS, name);
+  for (const [k,v] of Object.entries(attrs)) e.setAttribute(k,v);
+  return e;
+}
+
+function bigintPow(base, exp) {
+  let b = BigInt(base), e = BigInt(exp), out = 1n;
+  while (e > 0n) {
+    if (e & 1n) out *= b;
+    b *= b;
+    e >>= 1n;
+  }
+  return out;
+}
+
+function ghost(n) {
+  let sum = 0n;
+  const P = BigInt(p);
+  for (let i=0; i<=n; i++) {
+    const coeff = P ** BigInt(i);
+    const exp = p ** (n-i);
+    sum += coeff * bigintPow(x[i], exp);
+  }
+  return sum;
+}
+
+function draw() {
+  ringsG.textContent = "";
+  ripplesG.textContent = "";
+  nodesG.textContent = "";
+
+  const span = 2*Math.PI/p;
+
+  for (let i=0; i<depth; i++) {
+    const r0 = inner + i*width;
+    const r1 = r0 + width;
+
+    for (let d=0; d<p; d++) {
+      const a0 = -Math.PI/2 + d*span;
+      const a1 = a0 + span;
+      const s = el("path", {
+        d: arcPath(r0, r1, a0, a1),
+        class: "sector" + (x[i]===d ? " selected" : ""),
+        "data-i": i,
+        "data-d": d
+      });
+      s.addEventListener("click", () => {
+        x[i] = d;
+        draw();
+        fireFrom(i);
+      });
+      ringsG.appendChild(s);
+
+      const [tx,ty] = polar(ringRadius(i), (a0+a1)/2);
+      const label = el("text", {
+        x: tx, y: ty+4,
+        "text-anchor":"middle",
+        class:"digit-label"
+      });
+      label.textContent = d;
+      ringsG.appendChild(label);
+    }
+
+    const [lx,ly] = polar(r1+18, -Math.PI/2 - .03);
+    const lab = el("text", {x:lx, y:ly, "text-anchor":"middle", class:"ring-label"});
+    lab.textContent = "x" + i;
+    ringsG.appendChild(lab);
+
+    const ripple = el("circle", {
+      cx, cy,
+      r: r1 + 2,
+      class: "ghost-ring",
+      id: "ripple-" + i
+    });
+    ripplesG.appendChild(ripple);
+  }
+
+  const pts = [];
+  for (let i=0; i<depth; i++) {
+    const a = sectorAngle(x[i]);
+    const r = ringRadius(i);
+    const [px,py] = polar(r,a);
+    pts.push(px + "," + py);
+    nodesG.appendChild(el("circle",{cx:px,cy:py,r:5,class:"node"}));
+  }
+  pathEl.setAttribute("points", pts.join(" "));
+
+  coordsEl.innerHTML = "";
+  x.forEach((v,i) => {
+    coordsEl.insertAdjacentHTML("beforeend", `<span>x<sub>${i}</sub></span><b>${v}</b>`);
+  });
+
+  ghostsEl.innerHTML = "";
+  for (let n=0; n<depth; n++) {
+    const row = document.createElement("div");
+    row.className = "ghost-row";
+    row.innerHTML = `<span>w<sub>${n}</sub></span><span>${ghost(n).toString()}</span>`;
+    ghostsEl.appendChild(row);
+  }
+}
+
+function fireFrom(i) {
+  for (let n=i; n<depth; n++) {
+    const c = document.querySelector("#ripple-" + n);
+    if (!c) continue;
+    c.classList.remove("fire");
+    void c.getBoundingClientRect();
+    c.style.animationDelay = ((n-i)*90) + "ms";
+    c.classList.add("fire");
+  }
+}
+
+primeEl.addEventListener("change", () => {
+  p = +primeEl.value;
+  x = x.map(v => v % p);
+  draw();
+  fireFrom(0);
+});
+
+document.querySelector("#randomize").addEventListener("click", () => {
+  x = x.map(() => Math.floor(Math.random()*p));
+  draw();
+  fireFrom(0);
+});
+
+document.querySelector("#zero").addEventListener("click", () => {
+  x = x.map(() => 0);
+  draw();
+  fireFrom(0);
+});
+
+document.querySelector("#teich").addEventListener("click", () => {
+  const a = x[0] || 1;
+  x = [a,0,0,0,0];
+  draw();
+  fireFrom(0);
+});
+
+draw();
+setTimeout(() => fireFrom(0), 250);
+</script>
