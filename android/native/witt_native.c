@@ -383,7 +383,6 @@ static void handle_command(struct android_app *app, int32_t command) {
 }
 
 void android_main(struct android_app *app) {
-    app_dummy();
     struct witt_state state;
     memset(&state, 0, sizeof(state));
     state.app = app;
