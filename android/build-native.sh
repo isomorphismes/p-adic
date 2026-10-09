@@ -37,7 +37,8 @@ done
 
 mkdir -p "$(dirname -- "$output")"
 
-"$clang"     -std=c11     -Oz     -fPIC     -ffunction-sections     -fdata-sections     -shared     -Wall     -Wextra         -I "$glue_dir"     "$repo_root/android/native/witt_native.c"     "$glue"     -Wl,--gc-sections     -Wl,--no-undefined     -Wl,-soname,libwitt.so     -landroid     -llog     -lEGL     -lGLESv2     -lm     -o "$output"
+make -f "$repo_root/android/Makefile" native \
+    ANDROID_NDK_HOME="$ndk" ANDROID_API="$api" NATIVE_LIBRARY="$output"
 
 "$strip" --strip-unneeded "$output"
 

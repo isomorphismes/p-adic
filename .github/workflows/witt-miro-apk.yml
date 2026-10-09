@@ -6,6 +6,10 @@ on:
     paths:
       - "android/**"
       - ".github/workflows/witt-miro-apk.yml"
+  pull_request:
+    paths:
+      - "android/**"
+      - ".github/workflows/witt-miro-apk.yml"
   workflow_dispatch:
 
 jobs:
@@ -14,6 +18,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check out stable public test signer
         uses: actions/checkout@v4
@@ -37,8 +43,18 @@ jobs:
         run: |
           sdkmanager             "platforms;android-36"             "build-tools;36.0.0"             "ndk;29.0.14206865"
 
+      - name: Qualify the pinned ARMv7 ICK compiler
+        id: ick
+        uses: isomorphisms/ai-ci/ick-android@afabdf042609b59c949ab1eb06feeb380bdbe409
+        with:
+          abi: armeabi-v7a
+          ndk: ${{ env.ANDROID_HOME }}/ndk/29.0.14206865
+
       - name: Build stripped MIRO-only native APK
         env:
+          ICK_COMPILER: ${{ steps.ick.outputs.compiler }}
+          ICK_TARGET_FLAGS: ${{ steps.ick.outputs.target_flags }}
+          ICK_HEADER_TARGET: ${{ steps.ick.outputs.header_target }}
           ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/29.0.14206865
           ANDROID_BUILD_TOOLS: ${{ env.ANDROID_HOME }}/build-tools/36.0.0
           ANDROID_COMPILE_SDK: "36"
@@ -62,4 +78,5 @@ jobs:
             build/android/witt-miro-armeabi-v7a.contents.txt
             build/android/witt-miro-armeabi-v7a.sha256
             build/android/armeabi-v7a/libwitt.so
+            build/android/armeabi-v7a/libwitt.so.compiler.tsv
           if-no-files-found: error
