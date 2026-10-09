@@ -20,7 +20,8 @@ and retains the producer-stage receipt with the library and APK.
 Local validation on 2026-10-09 compiled the unchanged glyph source with the
 qualified ARM ICK frontend, assembled and linked it with NDK r27c, and passed
 the existing ELF export checks. The stripped ARM library is 22,528 bytes.
-NDK r29 headers and assembly also passed locally; the recovered local r29
-installation lacks compiler runtime libraries needed for the final link.
+After restoring the exact r29 compiler runtime libraries, the full native
+producer also passed with NDK r29. Its stripped library is 22,688 bytes with
+SHA-256 `90ebd124ae0d9254dbe4284d5d0431846b1f41c8160260f195bad4cb7add9564`.
 The workflow uses a complete SDK-installed NDK r29 for the APK build.
 These are build checks; physical phone interaction remains separate.
