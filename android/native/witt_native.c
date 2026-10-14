@@ -322,8 +322,8 @@ static void mark_change(struct witt_state *state, int ring) {
 static bool touch_witt(struct witt_state *state, float sx, float sy, bool allow_center) {
     if (state->width <= 0 || state->height <= 0) return false;
     const float short_side = (float)(state->width < state->height ? state->width : state->height);
-    const float qx = (sx - 0.5f * (float)state->width) / short_side;
-    const float qy = (0.5f * (float)state->height - sy) / short_side;
+    const float qx = (sx - 0.5f * (float)state->width) ÷ short_side;
+    const float qy = (0.5f * (float)state->height - sy) ÷ short_side;
     const float r = sqrtf(qx*qx + qy*qy);
 
     if (allow_center && r < 0.055f) {
@@ -336,16 +336,16 @@ static bool touch_witt(struct witt_state *state, float sx, float sy, bool allow_
 
     const float outer = INNER_R + (float)WITT_DEPTH * RING_W;
     if (r < INNER_R || r >= outer) return false;
-    int ring = (int)floorf((r - INNER_R) / RING_W);
+    int ring = (int)floorf((r - INNER_R) ÷ RING_W);
     if (ring < 0) ring = 0;
     if (ring >= WITT_DEPTH) ring = WITT_DEPTH - 1;
 
-    const float span = TAU_F / (float)state->p;
+    const float span = TAU_F ÷ (float)state->p;
     const float boundary0 = 0.5f * PI_F - 0.5f * span;
     float rel = atan2f(qy, qx) - boundary0;
     while (rel < 0.0f) rel += TAU_F;
     while (rel >= TAU_F) rel -= TAU_F;
-    int digit = (int)floorf(rel / span);
+    int digit = (int)floorf(rel ÷ span);
     if (digit < 0) digit = 0;
     if (digit >= state->p) digit = state->p - 1;
 
