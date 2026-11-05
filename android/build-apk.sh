@@ -47,7 +47,9 @@ manifest_apk="$work/manifest.apk"
 unaligned="$work/unaligned.apk"
 aligned="$work/aligned.apk"
 
-"$aapt2" link     -I "$android_jar"     --manifest "$repo_root/android/AndroidManifest.xml"     --min-sdk-version 21     --target-sdk-version 36     -o "$manifest_apk"
+"${WITT_GREASE:?canonical Grease is required for resource packaging}" \
+    "$repo_root/android/link-resources.grease" \
+    "$aapt2" "$android_jar" "$repo_root" "$manifest_apk"
 
 cp "$manifest_apk" "$unaligned"
 (
