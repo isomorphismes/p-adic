@@ -12,6 +12,10 @@ on:
       - ".github/workflows/witt-miro-apk.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -50,8 +54,16 @@ jobs:
           abi: armeabi-v7a
           ndk: ${{ env.ANDROID_HOME }}/ndk/29.0.14206865
 
+      - name: Check shared copies and acquire canonical Grease
+        uses: isomorphisms/ai-ci/.github/actions/charcoal-vendor@876a843dd7c5c635adaba854a53fd6f2c2139210
+        with:
+          header: '-'
+          resources: android/res
+
       - name: Build stripped MIRO-only native APK
         env:
+          WITT_GREASE: ${{ github.workspace }}/grease/bin/grease
+          ASAN_OPTIONS: detect_leaks=0
           ICK_COMPILER: ${{ steps.ick.outputs.compiler }}
           ICK_TARGET_FLAGS: ${{ steps.ick.outputs.target_flags }}
           ICK_HEADER_TARGET: ${{ steps.ick.outputs.header_target }}

@@ -1,0 +1,16 @@
+#!/usr/bin/env grease
+# AAPT2 ANDROID_JAR PROJECT OUTPUT: preserve the app's existing SDK policy.
+set -eu -o pipefail
+if (len(ARGV) !== 4) { echo 'requires AAPT2 ANDROID_JAR PROJECT OUTPUT' >&2; exit 2 }
+var aapt = ARGV[0]
+var jar = ARGV[1]
+var root = ARGV[2]
+var output = ARGV[3]
+for path in "$aapt" "$jar" "$root" "$output" {
+  if (path[0] !== '/') { echo 'absolute package paths required' >&2; exit 2 }
+}
+test ! -e "$output"
+"$aapt" compile --dir "$root/android/res" -o "$output.resources.zip"
+"$aapt" link -I "$jar" --manifest "$root/android/AndroidManifest.xml" \
+  --min-sdk-version 21 --target-sdk-version 36 \
+  -o "$output" "$output.resources.zip"
