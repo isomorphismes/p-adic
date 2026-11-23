@@ -1,0 +1,105 @@
+module WittPrefix
+
+import Data.Nat
+
+public export
+data SamplePrime : Number → Type where
+  PrimeTwo : SamplePrime 2
+  PrimeThree : SamplePrime 3
+  PrimeFive : SamplePrime 5
+
+public export
+data Digit : Number → Type where
+  DigitZero : {limit : Number} → Digit (S limit)
+  DigitStep : {limit : Number} → Digit limit → Digit (S limit)
+
+public export
+data Coordinates : Number → Number → Type where
+  First : {prime : Number} → SamplePrime prime → Digit prime → Coordinates prime 1
+  Second : {prime : Number} → Coordinates prime 1 → Digit prime → Coordinates prime 2
+  Third : {prime : Number} → Coordinates prime 2 → Digit prime → Coordinates prime 3
+
+public export
+data Ghosts : Number → Type where
+  FirstGhost : Number → Ghosts 1
+  SecondGhost : Ghosts 1 → Number → Ghosts 2
+  ThirdGhost : Ghosts 2 → Number → Ghosts 3
+
+public export
+digit_value : {limit : Number} → Digit limit → Number
+digit_value DigitZero = 0
+digit_value (DigitStep digit) = S (digit_value digit)
+
+public export
+level_one : Number → Number → Number → Number
+level_one prime first second = power first prime + prime × second
+
+public export
+level_two : Number → Number → Number → Number → Number
+level_two prime first second third =
+  power first (prime × prime) + prime × power second prime + prime × prime × third
+
+public export
+evaluate_ghosts : {prime, depth : Number} → Coordinates prime depth → Ghosts depth
+evaluate_ghosts (First sampled_prime first) = FirstGhost (digit_value first)
+evaluate_ghosts {prime} (Second prefix@(First sampled_prime first) second) =
+  SecondGhost (evaluate_ghosts prefix) (level_one prime (digit_value first) (digit_value second))
+evaluate_ghosts {prime} (Third prefix@(Second (First sampled_prime first) second) third) =
+  ThirdGhost (evaluate_ghosts prefix)
+    (level_two prime (digit_value first) (digit_value second) (digit_value third))
+
+public export
+discard_second_coordinate : {prime : Number} → Coordinates prime 2 → Coordinates prime 1
+discard_second_coordinate (Second prefix _) = prefix
+
+public export
+discard_third_coordinate : {prime : Number} → Coordinates prime 3 → Coordinates prime 2
+discard_third_coordinate (Third prefix _) = prefix
+
+public export
+discard_second_ghost : Ghosts 2 → Ghosts 1
+discard_second_ghost (SecondGhost prefix _) = prefix
+
+public export
+discard_third_ghost : Ghosts 3 → Ghosts 2
+discard_third_ghost (ThirdGhost prefix _) = prefix
+
+public export
+third_ghost : Ghosts 3 → Number
+third_ghost (ThirdGhost _ value) = value
+
+public export
+second_prefix_law : {prime : Number} → (coordinates : Coordinates prime 2) →
+  discard_second_ghost (evaluate_ghosts coordinates) =
+  evaluate_ghosts (discard_second_coordinate coordinates)
+second_prefix_law (Second (First _ _) _) = Refl
+
+public export
+third_prefix_law : {prime : Number} → (coordinates : Coordinates prime 3) →
+  discard_third_ghost (evaluate_ghosts coordinates) =
+  evaluate_ghosts (discard_third_coordinate coordinates)
+third_prefix_law (Third (Second (First _ _) _) _) = Refl
+
+public export
+first_from_third_law : {prime : Number} → (coordinates : Coordinates prime 3) →
+  discard_second_ghost (discard_third_ghost (evaluate_ghosts coordinates)) =
+  evaluate_ghosts (discard_second_coordinate (discard_third_coordinate coordinates))
+first_from_third_law coordinates =
+  trans (cong discard_second_ghost (third_prefix_law coordinates))
+        (second_prefix_law (discard_third_coordinate coordinates))
+
+exchange_tail_terms : (prefix, left, right : Number) →
+  (prefix + left) + right = (prefix + right) + left
+exchange_tail_terms prefix left right =
+  trans (sym (plusAssociative prefix left right))
+    (trans (cong (prefix +) (plusCommutative left right))
+      (plusAssociative prefix right left))
+
+public export
+third_change_balance : {prime : Number} →
+  (coordinates : Coordinates prime 2) → (before, after : Digit prime) →
+  third_ghost (evaluate_ghosts (Third coordinates before)) + prime × prime × digit_value after =
+  third_ghost (evaluate_ghosts (Third coordinates after)) + prime × prime × digit_value before
+third_change_balance {prime} (Second (First _ first) second) before after =
+  exchange_tail_terms (power (digit_value first) (prime × prime) + prime × power (digit_value second) prime)
+    (prime × prime × digit_value before) (prime × prime × digit_value after)

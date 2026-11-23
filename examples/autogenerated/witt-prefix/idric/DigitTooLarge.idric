@@ -1,0 +1,6 @@
+module DigitTooLarge
+
+import WittPrefix
+
+outside_binary_range : Digit 2
+outside_binary_range = DigitStep (DigitStep DigitZero)

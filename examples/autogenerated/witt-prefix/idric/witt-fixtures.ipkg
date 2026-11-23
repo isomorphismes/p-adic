@@ -1,0 +1,4 @@
+package witt-fixtures
+modules = WittPrefix, WittFixtures
+main = WittFixtures
+executable = witt-fixtures
