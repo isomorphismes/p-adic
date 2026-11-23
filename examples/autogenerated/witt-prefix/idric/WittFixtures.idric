@@ -1,0 +1,46 @@
+module WittFixtures
+
+import Data.Text
+import WittPrefix
+
+binary_first : Coordinates 2 1
+binary_first = First PrimeTwo (DigitStep DigitZero)
+
+binary_second : Coordinates 2 2
+binary_second = Second binary_first (DigitStep DigitZero)
+
+ternary_second : Coordinates 3 2
+ternary_second = Second (First PrimeThree (DigitStep (DigitStep DigitZero))) DigitZero
+
+quinary_four : Digit 5
+quinary_four = DigitStep (DigitStep (DigitStep (DigitStep DigitZero)))
+
+quinary_second : Coordinates 5 2
+quinary_second = Second (First PrimeFive quinary_four) DigitZero
+
+coordinate_text : {prime, depth : Number} → Coordinates prime depth → Text
+coordinate_text (First _ digit) = show (digit_value digit)
+coordinate_text (Second prefix digit) = coordinate_text prefix ++ "," ++ show (digit_value digit)
+coordinate_text (Third prefix digit) = coordinate_text prefix ++ "," ++ show (digit_value digit)
+
+ghost_text : {depth : Number} → Ghosts depth → Text
+ghost_text (FirstGhost value) = show value
+ghost_text (SecondGhost prefix value) = ghost_text prefix ++ "," ++ show value
+ghost_text (ThirdGhost prefix value) = ghost_text prefix ++ "," ++ show value
+
+observe : {prime, depth : Number} → Text → Coordinates prime depth → IO ()
+observe {prime} name coordinates =
+  putStrLn (name ++ "\t" ++ show prime ++ "\t" ++ coordinate_text coordinates ++ "\t" ++
+    ghost_text (evaluate_ghosts coordinates))
+
+main : IO ()
+main = do
+  putStrLn "case\tprime\tcoordinates\tinteger_ghosts"
+  observe "binary_first" binary_first
+  observe "binary_second" binary_second
+  observe "binary_third_zero" (Third binary_second DigitZero)
+  observe "binary_third_one" (Third binary_second (DigitStep DigitZero))
+  observe "ternary_third_one" (Third ternary_second (DigitStep DigitZero))
+  observe "ternary_third_two" (Third ternary_second (DigitStep (DigitStep DigitZero)))
+  observe "quinary_third_zero" (Third quinary_second DigitZero)
+  observe "quinary_third_four" (Third quinary_second quinary_four)

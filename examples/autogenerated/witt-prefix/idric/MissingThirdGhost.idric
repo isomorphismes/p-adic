@@ -1,0 +1,6 @@
+module MissingThirdGhost
+
+import WittPrefix
+
+unavailable_value : Number
+unavailable_value = third_ghost (evaluate_ghosts (Second (First PrimeTwo DigitZero) DigitZero))
